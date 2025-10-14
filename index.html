@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Калькулятор залишку пального Thermo King</title>
+  <meta name="description" content="Thermo King SLX/SLXi калькулятор залишку пального за мотогодинами. Автозбереження налаштувань у localStorage." />
+  <style>
+    :root { --gap: 14px; --radius: 14px; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e5e7eb; }
+    .container { max-width: 780px; margin: 0 auto; background: #111827; padding: 24px; border-radius: var(--radius); box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 1px solid #1f2937; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    p.sub { margin: 0 0 22px; color: #9ca3af; }
+
+    .grid { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+    @media (min-width: 640px) { .grid-2 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: 1fr 1fr 1fr; } }
+
+    label { font-size: 12px; color: #9ca3af; display: block; margin-bottom: 6px; }
+    input[type="number"] { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #374151; background: #0b1220; color: #e5e7eb; outline: none; }
+    input[type="number"]:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.25); }
+
+    .row { display: grid; gap: var(--gap); }
+
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    button { appearance: none; border: 1px solid #1f2937; background: #1f2937; color: #e5e7eb; padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: 600; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    button.ghost { background: transparent; }
+
+    .panel { background: #0b1220; border: 1px solid #1f2937; border-radius: var(--radius); padding: 16px; }
+
+    .result { display: grid; gap: 10px; font-size: 16px; }
+    .value { font-weight: 700; font-size: 28px; }
+
+    .bar-wrap { background: #111827; border: 1px solid #1f2937; border-radius: 999px; height: 14px; overflow: hidden; }
+    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #84cc16); transition: width .25s ease; }
+
+    .muted { color: #94a3b8; font-size: 13px; }
+    .small { font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Калькулятор залишку пального Thermo King</h1>
+    <p class="sub">Розрахунок за мотогодинами. За замовчуванням: середня витрата <strong>3.25 л/год</strong>, бак <strong>240 л</strong>.</p>
+
+    <div class="grid grid-3">
+      <div class="row">
+        <label for="capacity">Ємність бака, л</label>
+        <input id="capacity" type="number" inputmode="decimal" step="0.1" min="0" value="240" />
+      </div>
+      <div class="row">
+        <label for="startFuel">Пального зараз, л</label>
+        <input id="startFuel" type="number" inputmode="decimal" step="0.1" min="0" value="240" />
+      </div>
+      <div class="row">
+        <label for="rate">Середня витрата, л/год</label>
+        <input id="rate" type="number" inputmode="decimal" step="0.01" min="0" value="3.25" />
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: var(--gap);">
+      <div class="row">
+        <label for="hours">Мотогодини з останньої заправки / заміру</label>
+        <input id="hours" type="number" inputmode="decimal" step="0.1" min="0" value="0" />
+      </div>
+      <div class="row">
+        <label for="addedFuel">Дозалив пального, л (необов’язково)</label>
+        <input id="addedFuel" type="number" inputmode="decimal" step="0.1" min="0" value="0" />
+      </div>
+    </div>
+
+    <div class="btns" style="margin-top: 10px; gap: 8px;">
+      <button class="primary" id="calcBtn">Розрахувати</button>
+      <button class="ghost" id="resetBtn">Скинути</button>
+      <button class="ghost" id="saveBtn">Зберегти значення</button>
+      <button class="ghost" id="clearBtn">Очистити збережене</button>
+      <span class="small" id="saveHint"></span>
+    </div>
+
+    <div class="panel" style="margin-top: 16px;">
+      <div class="result">
+        <div>
+          Залишок пального: <span class="value" id="remainLiters">—</span>
+          <span class="muted">л</span>
+        </div>
+        <div class="inline">
+          <div class="bar-wrap" style="width: 260px;">
+            <div class="bar" id="bar"></div>
+          </div>
+          <span class="muted" id="percent">—%</span>
+        </div>
+        <div class="muted">
+          Використано: <strong id="usedLiters">—</strong> л • Мотогодини: <strong id="echoHours">—</strong> год • Витрата: <strong id="echoRate">—</strong> л/год
+        </div>
+        <div id="note" class="muted"></div>
+      </div>
+    </div>
+
+    <p class="muted" style="margin-top: 14px;">Формула: залишок = пального зараз + дозалив − (мотогодини × витрата). Відсоток обчислюється від ємності бака.</p>
+  </div>
+
+  <script>
+    const els = {
+      capacity: document.getElementById('capacity'),
+      startFuel: document.getElementById('startFuel'),
+      rate: document.getElementById('rate'),
+      hours: document.getElementById('hours'),
+      addedFuel: document.getElementById('addedFuel'),
+      calcBtn: document.getElementById('calcBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      saveBtn: document.getElementById('saveBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      saveHint: document.getElementById('saveHint'),
+      remainLiters: document.getElementById('remainLiters'),
+      usedLiters: document.getElementById('usedLiters'),
+      percent: document.getElementById('percent'),
+      bar: document.getElementById('bar'),
+      echoHours: document.getElementById('echoHours'),
+      echoRate: document.getElementById('echoRate'),
+      note: document.getElementById('note'),
+    };
+
+    const LS_KEY = 'tk_calc_ua';
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const fmt = (n, digits = 1) => isFinite(n) ? Number(n).toFixed(digits) : '—';
+
+    const LS = {
+      get() { try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; } },
+      set(obj) { try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch {} },
+      clear() { try { localStorage.removeItem(LS_KEY); } catch {} },
+    };
+
+    function readForm() {
+      return {
+        capacity: els.capacity.value,
+        startFuel: els.startFuel.value,
+        rate: els.rate.value,
+        hours: els.hours.value,
+        addedFuel: els.addedFuel.value,
+      };
+    }
+
+    function writeForm(d) {
+      if (!d) return;
+      if (d.capacity != null) els.capacity.value = d.capacity;
+      if (d.startFuel != null) els.startFuel.value = d.startFuel;
+      if (d.rate != null) els.rate.value = d.rate;
+      if (d.hours != null) els.hours.value = d.hours;
+      if (d.addedFuel != null) els.addedFuel.value = d.addedFuel;
+    }
+
+    function calc() {
+      const cap = parseFloat(els.capacity.value) || 0;
+      const start = parseFloat(els.startFuel.value) || 0;
+      const rate = parseFloat(els.rate.value) || 0;
+      const hrs = parseFloat(els.hours.value) || 0;
+      const add = parseFloat(els.addedFuel.value) || 0;
+
+      const used = hrs * rate;
+      const remain = start + add - used;
+      const pctRaw = cap > 0 ? (remain / cap) * 100 : 0;
+      const pct = clamp(pctRaw, 0, 100);
+
+      els.remainLiters.textContent = fmt(remain, 1);
+      els.usedLiters.textContent = fmt(used, 1);
+      els.percent.textContent = fmt(pctRaw, 1) + '%';
+      els.bar.style.width = pct + '%';
+      els.echoHours.textContent = fmt(hrs, 1);
+      els.echoRate.textContent = fmt(rate, 2);
+
+      els.note.textContent = remain < 0 ? '⚠️ Пальне вичерпано.' : '';
+
+      if (pct <= 15) {
+        els.bar.style.background = 'linear-gradient(90deg,#ef4444,#f97316)';
+      } else if (pct <= 40) {
+        els.bar.style.background = 'linear-gradient(90deg,#f59e0b,#fbbf24)';
+      } else {
+        els.bar.style.background = 'linear-gradient(90deg,#22c55e,#84cc16)';
+      }
+    }
+
+    function saveManual() {
+      LS.set(readForm());
+      els.saveHint.textContent = 'Збережено';
+      setTimeout(()=> els.saveHint.textContent = '', 1000);
+    }
+
+    function clearSaved() {
+      LS.clear();
+      els.saveHint.textContent = 'Очищено';
+      setTimeout(()=> els.saveHint.textContent = '', 1000);
+    }
+
+    function load() {
+      const data = LS.get();
+      if (data) writeForm(data);
+    }
+
+    els.calcBtn.addEventListener('click', calc);
+    els.resetBtn.addEventListener('click', () => { writeForm({ capacity: 240, startFuel: 240, rate: 3.25, hours: 0, addedFuel: 0 }); calc(); saveManual(); });
+    els.saveBtn.addEventListener('click', saveManual);
+    els.clearBtn.addEventListener('click', clearSaved);
+
+    ['capacity','startFuel','rate','hours','addedFuel'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => { calc(); saveManual(); });
+      el.addEventListener('blur', (e) => { e.target.value = (e.target.value || '').replace(',', '.'); calc(); saveManual(); });
+    });
+
+    load();
+    calc();
+  </script>
+</body>
+</html>
