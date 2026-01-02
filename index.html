@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Калькулятор залишку пального Thermo King</title>
+  <meta name="description" content="Калькулятор залишку пального Thermo King за мотогодинами. Збереження у localStorage." />
+  <style>
+    :root {
+      --gap: 14px;
+      --radius: 18px;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.62);
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(59,130,246,0.28), transparent 55%),
+        radial-gradient(900px 600px at 80% 20%, rgba(34,197,94,0.20), transparent 55%),
+        radial-gradient(1000px 700px at 60% 90%, rgba(168,85,247,0.18), transparent 60%),
+        #0b1220;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+    }
+
+    .header { padding: 14px 14px 10px; }
+
+    h1 { margin: 0 0 8px; font-size: 22px; letter-spacing: 0.2px; font-weight: 700; }
+
+    p.sub { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.35; }
+
+    .grid { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+    @media (min-width: 680px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .panel {
+      padding: 14px;
+      border-radius: var(--radius);
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+      backdrop-filter: blur(16px) saturate(150%);
+      -webkit-backdrop-filter: blur(16px) saturate(150%);
+    }
+
+    .field label { display: block; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.18);
+      color: var(--text);
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
+      font-size: 16px; /* iOS: без автозума */
+      line-height: 1.2;
+    }
+
+    input[type="number"]::placeholder { color: rgba(255,255,255,0.35); }
+
+    input[type="number"]:focus {
+      border-color: rgba(59,130,246,0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 0 0 3px rgba(59,130,246,0.18);
+    }
+
+    .autoHoursLine {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 14px 14px; }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.14);
+      backdrop-filter: blur(14px) saturate(160%);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+      transition: transform .08s ease, background .18s ease, border-color .18s ease;
+      flex: 0 0 auto;
+    }
+
+    button:active { transform: scale(0.98); }
+
+    button.primary {
+      background: linear-gradient(180deg, rgba(59,130,246,0.65), rgba(59,130,246,0.35));
+      border-color: rgba(59,130,246,0.55);
+    }
+
+    button.ghost { background: rgba(255,255,255,0.08); }
+
+    .small { font-size: 12px; color: var(--muted); }
+
+    .bar-wrap {
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      height: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .bar { height: 100%; width: 0%; background: linear-gradient(90deg, rgba(34,197,94,0.95), rgba(132,204,22,0.95)); transition: width .25s ease; }
+
+    .footer-note { padding: 0 14px 14px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    .resultCard {
+      text-align: center;
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      padding: 16px;
+    }
+
+    .remainStack { display: grid; gap: 6px; justify-items: center; }
+    .remainLabel { color: var(--muted); font-size: 13px; }
+    .remainLine { display: inline-flex; align-items: baseline; gap: 8px; }
+    .remainValue { font-size: 38px; font-weight: 850; letter-spacing: 0.2px; }
+    .remainUnit { color: var(--muted); font-size: 14px; font-weight: 700; }
+
+    .fuelGauge { width: 100%; display: grid; gap: 8px; justify-items: center; }
+    .percentBig { font-size: 18px; font-weight: 800; letter-spacing: 0.2px; }
+
+    .statsLine {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+    .statsLine strong { color: var(--text); }
+    .dot { opacity: 0.7; margin: 0 2px; }
+
+    .noteLine { color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 430px) {
+      body { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+      .container { padding: 14px; border-radius: 22px; }
+      .header { padding: 10px 10px 10px; }
+      h1 { font-size: 20px; }
+      p.sub { font-size: 13px; }
+      .panel { padding: 12px; border-radius: 18px; }
+      .btns { padding: 0 10px 12px; gap: 10px; }
+      .btns button { width: 100%; justify-content: center; }
+      .remainValue { font-size: 34px; }
+      .bar-wrap { max-width: 320px; }
+      .percentBig { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Калькулятор залишку пального Thermo King</h1>
+      <p class="sub">Розрахунок за мотогодинами. Підказка: можна лишити <strong>бак 240 л</strong> та <strong>витрату 2.0 л/год</strong>, або ввести свої значення.</p>
+    </div>
+
+    <!-- INPUTS -->
+    <div class="panel" style="margin: 0 14px 14px;">
+      <div class="grid grid-3">
+        <div class="field">
+          <label for="capacity">Ємність бака, л</label>
+          <input id="capacity" type="number" inputmode="decimal" step="0.1" min="0" placeholder="240" />
+        </div>
+        <div class="field">
+          <label for="startFuel">Пального зараз, л</label>
+          <input id="startFuel" type="number" inputmode="decimal" step="0.1" min="0" placeholder="" />
+        </div>
+        <div class="field">
+          <label for="rate">Середня витрата, л/год</label>
+          <input id="rate" type="number" inputmode="decimal" step="0.01" min="0" placeholder="2.00" />
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top: var(--gap);">
+        <div class="field">
+          <label for="startHours">Лічильник <em>до роботи</em>, мото‑год</label>
+          <input id="startHours" type="number" inputmode="numeric" step="1" min="0" placeholder="" />
+        </div>
+        <div class="field">
+          <label for="endHours">Лічильник <em>після роботи</em>, мото‑год</label>
+          <input id="endHours" type="number" inputmode="numeric" step="1" min="0" placeholder="" />
+        </div>
+      </div>
+
+      <div class="autoHoursLine">
+        <span>Мотогодини за зміну:</span>
+        <strong id="autoHours">0.0</strong>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="btns">
+      <button class="primary" id="calcBtn">Розрахувати</button>
+      <button class="ghost" id="commitBtn">Завершити зміну</button>
+      <button class="ghost" id="clearBtn">Очистити збережене</button>
+      <span class="small" id="saveHint"></span>
+    </div>
+
+    <!-- RESULT -->
+    <div class="panel resultCard" style="margin: 0 14px 14px;">
+      <div class="remainStack">
+        <div class="remainLabel">Залишок пального</div>
+        <div class="remainLine">
+          <span class="remainValue" id="remainLiters">—</span>
+          <span class="remainUnit">л</span>
+        </div>
+      </div>
+
+      <div class="fuelGauge">
+        <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+        <div class="percentBig" id="percent">—%</div>
+      </div>
+
+      <div class="statsLine">
+        Використано: <strong id="usedLiters">—</strong> л
+        <span class="dot">•</span>
+        Мотогодини: <strong id="echoHours">—</strong>
+        <span class="dot">•</span>
+        Витрата: <strong id="echoRate">—</strong> л/год
+      </div>
+
+      <div id="note" class="noteLine"></div>
+    </div>
+
+    <div class="footer-note">Формула: залишок = пального зараз − (мотогодини × витрата). Збереження виконується при натисканні «Розрахувати» або «Завершити зміну».</div>
+  </div>
+
+  <script>
+    "use strict";
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const $ = (id) => document.getElementById(id);
+
+      const els = {
+        capacity: $('capacity'),
+        startFuel: $('startFuel'),
+        rate: $('rate'),
+        startHours: $('startHours'),
+        endHours: $('endHours'),
+        autoHours: $('autoHours'),
+        calcBtn: $('calcBtn'),
+        commitBtn: $('commitBtn'),
+        clearBtn: $('clearBtn'),
+        saveHint: $('saveHint'),
+        remainLiters: $('remainLiters'),
+        usedLiters: $('usedLiters'),
+        percent: $('percent'),
+        bar: $('bar'),
+        echoHours: $('echoHours'),
+        echoRate: $('echoRate'),
+        note: $('note'),
+      };
+
+      // --- localStorage availability ---
+      const LS_KEY = 'tk_calc_ua_glass_v3';
+      let storageOK = true;
+      try {
+        const t = '__tk__';
+        localStorage.setItem(t, '1');
+        localStorage.removeItem(t);
+      } catch {
+        storageOK = false;
+      }
+
+      const LS = {
+        get() {
+          if (!storageOK) return null;
+          try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; }
+        },
+        set(obj) {
+          if (!storageOK) return;
+          try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch {}
+        },
+        clear() {
+          if (!storageOK) return;
+          try { localStorage.removeItem(LS_KEY); } catch {}
+        },
+      };
+
+      // --- helpers ---
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const fmt = (n, digits = 1) => (Number.isFinite(n) ? Number(n).toFixed(digits) : '—');
+
+      const toNum = (el) => {
+        const s = (el.value || '').toString().replace(',', '.').trim();
+        if (!s) return NaN;
+        const n = Number(s);
+        return Number.isFinite(n) ? n : NaN;
+      };
+
+      const readWithDefault = (el, fallback) => {
+        const n = toNum(el);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      function hoursDelta() {
+        const a = readWithDefault(els.startHours, 0);
+        const b = readWithDefault(els.endHours, 0);
+        return Math.max(0, b - a);
+      }
+
+      function readFormRaw() {
+        // зберігаємо рядки, щоб не губити формат
+        return {
+          capacity: els.capacity.value,
+          startFuel: els.startFuel.value,
+          rate: els.rate.value,
+          startHours: els.startHours.value,
+          endHours: els.endHours.value,
+        };
+      }
+
+      function writeFormRaw(d) {
+        if (!d) return;
+        els.capacity.value = d.capacity ?? '';
+        els.startFuel.value = d.startFuel ?? '';
+        els.rate.value = d.rate ?? '';
+        els.startHours.value = d.startHours ?? '';
+        els.endHours.value = d.endHours ?? '';
+      }
+
+      function saveHint(msg) {
+        els.saveHint.textContent = msg;
+        setTimeout(() => (els.saveHint.textContent = ''), 1100);
+      }
+
+      function calcOnly() {
+        const cap = readWithDefault(els.capacity, 240);
+        const start = readWithDefault(els.startFuel, NaN);
+        const rate = readWithDefault(els.rate, 2.0);
+        const hrs = hoursDelta();
+
+        els.autoHours.textContent = fmt(hrs, 1);
+
+        // якщо користувач ще не ввів пальне — не рахуємо до кінця
+        if (!Number.isFinite(start)) {
+          els.remainLiters.textContent = '—';
+          els.usedLiters.textContent = fmt(hrs * rate, 1);
+          els.percent.textContent = '—%';
+          els.bar.style.width = '0%';
+          els.echoHours.textContent = fmt(hrs, 1);
+          els.echoRate.textContent = fmt(rate, 2);
+          els.note.textContent = 'Введи «Пального зараз», щоб побачити залишок.';
+          return { cap, start: NaN, rate, hrs, used: hrs * rate, remain: NaN };
+        }
+
+        const used = hrs * rate;
+        const remain = start - used;
+        const pctRaw = cap > 0 ? (remain / cap) * 100 : 0;
+        const pct = clamp(pctRaw, 0, 100);
+
+        els.remainLiters.textContent = fmt(remain, 1);
+        els.usedLiters.textContent = fmt(used, 1);
+        els.percent.textContent = fmt(pctRaw, 1) + '%';
+        els.bar.style.width = pct + '%';
+        els.echoHours.textContent = fmt(hrs, 1);
+        els.echoRate.textContent = fmt(rate, 2);
+
+        els.note.textContent = remain < 0 ? '⚠️ Пальне вичерпано.' : '';
+
+        if (pct <= 15) {
+          els.bar.style.background = 'linear-gradient(90deg, rgba(239,68,68,0.95), rgba(249,115,22,0.95))';
+        } else if (pct <= 40) {
+          els.bar.style.background = 'linear-gradient(90deg, rgba(245,158,11,0.95), rgba(251,191,36,0.95))';
+        } else {
+          els.bar.style.background = 'linear-gradient(90deg, rgba(34,197,94,0.95), rgba(132,204,22,0.95))';
+        }
+
+        return { cap, start, rate, hrs, used, remain };
+      }
+
+      function calcAndSave() {
+        calcOnly();
+        LS.set(readFormRaw());
+        if (!storageOK) saveHint('Збереження недоступне (блоковано браузером)');
+        else saveHint('Збережено');
+      }
+
+      function commitShift() {
+        const r = calcOnly();
+
+        // якщо нема startFuel — нема що фіксувати
+        if (!Number.isFinite(r.start)) {
+          saveHint('Введи «Пального зараз»');
+          return;
+        }
+
+        const end = readWithDefault(els.endHours, NaN);
+        if (Number.isFinite(end) && end > 0) {
+          els.startHours.value = String(end);
+        }
+
+        els.startFuel.value = String(Math.max(0, r.remain).toFixed(1));
+        els.endHours.value = '';
+
+        calcOnly();
+        LS.set(readFormRaw());
+        if (!storageOK) saveHint('Збереження недоступне');
+        else saveHint('Зафіксовано');
+      }
+
+      function clearSaved() {
+        LS.clear();
+        writeFormRaw({ capacity: '', startFuel: '', rate: '', startHours: '', endHours: '' });
+        calcOnly();
+        saveHint('Очищено');
+      }
+
+      // --- bind events (guarded) ---
+      const bind = (el, ev, fn) => { if (el) el.addEventListener(ev, fn); };
+
+      bind(els.calcBtn, 'click', calcAndSave);
+      bind(els.commitBtn, 'click', commitShift);
+      bind(els.clearBtn, 'click', clearSaved);
+
+      ['capacity','startFuel','rate','startHours','endHours'].forEach((id) => {
+        const el = $(id);
+        bind(el, 'input', calcOnly);
+        bind(el, 'blur', (e) => { e.target.value = (e.target.value || '').toString().replace(',', '.'); calcOnly(); });
+      });
+
+      // --- init ---
+      const saved = LS.get();
+      if (saved) {
+        writeFormRaw(saved);
+      } else {
+        // пусті поля за замовчуванням
+        writeFormRaw({ capacity: '', startFuel: '', rate: '', startHours: '', endHours: '' });
+      }
+
+      calcOnly();
+
+      // --- optional: simple dev tests only when ?test=1 ---
+      const params = new URLSearchParams(location.search);
+      if (params.get('test') === '1') {
+        console.log('[tests] running');
+        els.capacity.value = '240';
+        els.startFuel.value = '200';
+        els.rate.value = '2';
+        els.startHours.value = '1000';
+        els.endHours.value = '1010';
+        const rr = calcOnly();
+        console.assert(Math.abs(rr.used - 20) < 0.001, 'used=20');
+        console.assert(Math.abs(rr.remain - 180) < 0.001, 'remain=180');
+        console.log('[tests] ok');
+      }
+    });
+  </script>
+</body>
+</html>
