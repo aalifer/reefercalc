@@ -16,7 +16,7 @@
   <link rel="manifest" href="./site.webmanifest" />
   <title>Reefer Calc — пальне та навантаження на осі</title>
   <meta name="description" content="Reefer Calc: розрахунок залишку пального рефрижератора за мотогодинами та довідник навантаження на осі. Збереження даних на пристрої." />
-  <link rel="stylesheet" href="./styles.css?v=20261030-header" />
+  <link rel="stylesheet" href="./styles.css?v=20261030-labels" />
 </head>
 <body>
   <div class="container">
@@ -60,21 +60,24 @@
           <input id="startFuel" type="number" inputmode="decimal" step="0.1" min="0" placeholder="" />
         </div>
         <div class="field">
-          <label for="rate">Середня витрата, л/год</label>
+          <label for="rate">Витрата, л/год</label>
           <input id="rate" type="number" inputmode="decimal" step="0.01" min="0" placeholder="2.00" />
         </div>
       </div>
 
-      <div class="grid grid-2" style="margin-top: var(--gap);">
+      <fieldset class="hours-fields">
+        <legend>Лічильник мотогодин</legend>
+        <div class="grid grid-2">
         <div class="field">
-          <label for="startHours">Лічильник до роботи, год</label>
+          <label for="startHours">До роботи, год</label>
           <input id="startHours" type="number" inputmode="numeric" step="1" min="0" placeholder="" />
         </div>
         <div class="field">
-          <label for="endHours">Лічильник після роботи, год</label>
+          <label for="endHours">Після роботи, год</label>
           <input id="endHours" type="number" inputmode="numeric" step="1" min="0" placeholder="" />
         </div>
-      </div>
+        </div>
+      </fieldset>
 
       <div class="autoHoursLine">
         <span>Мотогодини за зміну:</span>
