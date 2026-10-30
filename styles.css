@@ -23,8 +23,14 @@ button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .container { width: 100%; max-width: 1120px; margin: auto; }
 .header { display: flex; align-items: center; gap: 14px; padding: 8px 0 26px; }
 .brand-icon { width: 64px; height: 64px; flex: none; }
+.brand-lockup { min-width: 0; }
+.brand-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 18px; row-gap: 6px; }
 .brand-name { font: 900 clamp(24px, 4vw, 32px)/1 "Arial Black", "Segoe UI", sans-serif; letter-spacing: -1.2px; }
 .brand-name span { color: var(--green); }
+.brand-credit { padding-left: 16px; border-left: 1px solid var(--stroke); font-size: 12px; line-height: 1.2; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+.credit-by { margin-right: 3px; color: var(--muted); font-size: 10px; font-weight: 400; }
+.credit-first { color: #fff; }
+.credit-last { color: var(--green); }
 .brand-caption { margin-top: 7px; color: var(--muted); font-size: 12px; }
 .pageMenu { margin-bottom: 28px; }
 .pageMenuOptions { display: flex; gap: 8px; padding: 6px; width: fit-content; max-width: 100%; border: 1px solid var(--stroke); border-radius: 14px; background: var(--surface); }
@@ -116,6 +122,8 @@ button:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }
   .container { max-width: 540px; }
   .header { padding-bottom: 22px; }
   .brand-icon { width: 52px; height: 52px; }
+  .brand-title { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .brand-credit { padding-left: 0; border-left: 0; font-size: 11px; }
   .brand-caption { font-size: 11px; }
   .pageMenu { margin-bottom: 24px; }
   .pageMenuOptions { width: 100%; }
