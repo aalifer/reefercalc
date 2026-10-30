@@ -1,11 +1,11 @@
 {
-  "name": "Калькулятор Thermo King",
-  "short_name": "Thermo King",
+  "name": "Reefer Calc — пальне та осі",
+  "short_name": "Reefer Calc",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#080d12",
-  "theme_color": "#080d12",
+  "background_color": "#101416",
+  "theme_color": "#101416",
   "icons": [
     {
       "src": "./app-icon-192.png",
